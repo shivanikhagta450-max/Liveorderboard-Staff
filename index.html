@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Staff Dashboard | Luxury Dining</title>
+
+<!-- Luxury Fonts -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;600&display=swap">
+
+<style>
+    body {
+        margin: 0;
+        padding: 20px;
+        background: #f7f3ec; /* SAME as public.html */
+        font-family: "Inter", sans-serif;
+        color: #3b2f2f;
+    }
+
+    /* LOGIN BOX - ALWAYS VISIBLE */
+    #loginBox {
+        width: 380px;
+        margin: 60px auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 16px;
+        border: 2px solid #c9a35a; /* GOLD */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        text-align: center;
+    }
+
+    h2, h3 {
+        font-family: "Playfair Display", serif;
+        color: #7a5a2b;
+    }
+
+    h2 { font-size: 28px; margin-bottom: 20px; }
+    h3 { font-size: 30px; margin-top: 20px; text-align: center; }
+
+    input {
+        width: 100%;
+        padding: 14px;
+        margin-top: 10px;
+        border-radius: 12px;
+        border: 1px solid #c9a35a;
+        background: #fdfaf5;
+        font-size: 15px;
+        color: #3e332e;
+    }
+
+    button {
+        width: 100%;
+        padding: 14px;
+        margin-top: 18px;
+        background: linear-gradient(135deg, #d8b574, #c9a35a);
+        border-radius: 12px;
+        border: none;
+        color: white;
+        font-size: 17px;
+        font-family: "Playfair Display", serif;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    /* DASHBOARD */
+    #dashboard {
+        display: none;
+        max-width: 1100px;
+        margin: 20px auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #ffffff;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 2px solid #c9a35a; /* GOLD */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    th {
+        background: #f1e6d6;
+        padding: 14px;
+        font-family: "Playfair Display", serif;
+        font-size: 18px;
+        color: #7a5a2b;
+        border-bottom: 2px solid #c9a35a;
+    }
+
+    td {
+        padding: 14px;
+        font-size: 16px;
+    }
+
+    tr:nth-child(even) {
+        background: #fdf7ef;
+    }
+
+    /* Dropdown visible & styled */
+    select {
+        padding: 10px;
+        border-radius: 8px;
+        border: 2px solid #c9a35a;
+        background: #fffdf7;
+        color: #3e332e;
+        font-size: 15px;
+        width: 140px;
+        cursor: pointer;
+    }
+
+    .update-btn {
+        background: #c9a35a;
+        border: none;
+        padding: 8px 12px;
+        color: white;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginBox">
+    <h2>Staff Login</h2>
+
+    <input id="staffId" placeholder="Staff ID">
+    <input id="password" type="password" placeholder="Password">
+
+    <button onclick="login()">Login</button>
+
+    <p id="loginMsg" style="color:#b33b3b; margin-top:10px; font-weight:bold;"></p>
+
+    <p style="margin-top:10px; color:#7a5a2b;">
+        Demo Login → <b>staff</b> / <b>1234</b>
+    </p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+    <h3>Order Management</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody id="orderTable"></tbody>
+    </table>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+<script>
+// FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyCT9xJpf2Pqc5ztXUQgDKr6QomDGrrCsQQ",
+  authDomain: "live-order-board-7d91d.firebaseapp.com",
+  projectId: "live-order-board-7d91d",
+  storageBucket: "live-order-board-7d91d.firebasestorage.app",
+  messagingSenderId: "554540932186",
+  appId: "1:554540932186:web:17bf2a4367c294764a0c63"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// LOGIN
+function login() {
+    const id = document.getElementById("staffId").value;
+    const pw = document.getElementById("password").value;
+
+    if (id === "staff" && pw === "1234") {
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+    } else {
+        document.getElementById("loginMsg").innerText = "Wrong staff credentials.";
+    }
+}
+
+// REAL-TIME ORDERS
+db.collection("orders").orderBy("createdAt").onSnapshot(snapshot => {
+    let table = document.getElementById("orderTable");
+    table.innerHTML = "";
+
+    snapshot.forEach(doc => {
+        let d = doc.data();
+
+        table.innerHTML += `
+        <tr>
+            <td>${d.name}</td>
+            <td>${d.item}</td>
+            <td>${d.qty}</td>
+
+            <td>
+                <select id="status-${doc.id}">
+                    <option ${d.status==="New"?"selected":""}>New</option>
+                    <option ${d.status==="Preparing"?"selected":""}>Preparing</option>
+                    <option ${d.status==="Ready"?"selected":""}>Ready</option>
+                    <option ${d.status==="Collected"?"selected":""}>Collected</option>
+                </select>
+            </td>
+
+            <td>
+                <button onclick="updateStatus('${doc.id}')" class="update-btn">Update</button>
+            </td>
+        </tr>
+        `;
+    });
+});
+
+// UPDATE STATUS
+function updateStatus(id) {
+    const newStatus = document.getElementById(`status-${id}`).value;
+    db.collection("orders").doc(id).update({ status: newStatus });
+}
+</script>
+
+</body>
+</html>
